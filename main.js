@@ -1,6 +1,22 @@
 let tableauIdees=[]
+const stockIdees="idees"
 let lesIdees = document.getElementById("idees")
 let indexModification=-1
+
+
+
+function sauvegarde(){
+    localStorage.setItem(stockIdees, JSON.stringify(tableauIdees))
+}
+
+function recuperer(){
+    const ideeRecup= localStorage.getItem(stockIdees)
+    if (ideeRecup){
+        tableauIdees=JSON.parse(ideeRecup)
+    }
+
+}
+
 
 const formulaire = document.getElementById("ideeForm")
 formulaire.addEventListener('submit', function(e){
@@ -29,7 +45,7 @@ formulaire.addEventListener('submit', function(e){
             description: description.value}
         indexModification = -1;
 
-    }
+    }sauvegarde()
     
     afficherIdees()
     console.log(idee)
@@ -70,6 +86,7 @@ function afficherIdees(){
 
 function supprimerIdee(idIdeeAsupprimer){
     tableauIdees= tableauIdees.filter(idee => idee.id !==idIdeeAsupprimer)
+    sauvegarde()
     afficherIdees()
 }
 
@@ -79,7 +96,8 @@ function modifierIdee(idAmodifier){
     document.getElementById("categorie").value=ideeAtrouver.categorie,
     document.getElementById("description").value=ideeAtrouver.description
     indexModification=idAmodifier
-
 }
 
 
+recuperer()
+afficherIdees()
