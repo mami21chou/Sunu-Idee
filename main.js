@@ -1,12 +1,9 @@
+import {CleAPI} from './config.js'
+
 let tableauIdees=[]
 const stockIdees="idees"
 let lesIdees = document.getElementById("idees")
 let indexModification=-1
-
-
-
-
-
 
 
 
@@ -16,41 +13,48 @@ async function suggererAvecOllama() {
     if (titre.length < 3) return;
     
     try {
-        const response = await fetch('http://localhost:11434/api/generate', {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+
+            headers: {
+            'Authorization': `Bearer ${CleAPI}`,
+                'Content-Type': 'application/json' },
             body: JSON.stringify({
-                model: 'mistral',
-                prompt: `Choisis une catégorie pour: "${titre}". Réponds par: pedagogie, evenement, vie-campus, ou autre`,
-                stream: false
+                model: 'qwen/qwen3-coder:free',
+                messages: [
+                    {
+                        role: 'user',
+                        content: `Choisis une catégorie pour: "${titre}". Réponds par: pedagogie, evenement, vie-campus, ou autre`,
+                    },
+                ],
+               
             })
         });
         
         const data = await response.json();
-        let categorie = data.response.trim().toLowerCase();
+        let categorie = data.choices[0].message.content.toLowerCase();
         
         // Nettoie la réponse
         if (categorie.includes('pedagogie')) categorie = 'pedagogie';
         else if (categorie.includes('evenement')) categorie = 'evenement';
         else if (categorie.includes('vie-campus')) categorie = 'vie-campus';
         else categorie = 'autre';
+        return categorie
         
-        // Applique la suggestion
-        document.getElementById('categorie').value = categorie;
+        
         
     } catch (error) {
         console.log('Ollama indisponible');
+        return "amelioration-technique"
     }
 }
 
-// // Règles locales de secours (si Ollama ne marche pas)
-// function suggererCategorieLocale(titre) {
-//     const t = titre.toLowerCase();
-//     if (t.includes('cours') || t.includes('étude')) return 'pedagogie';
-//     if (t.includes('fête') || t.includes('soirée')) return 'evenement';
-//     if (t.includes('campus') || t.includes('bâtiment')) return 'vie-campus';
-//     return 'autre';
-// }
+
+//  Quand on tape dans le titre, Ollama suggère 
+const inputTitre = document.getElementById('titre');
+inputTitre.addEventListener('input', function() {
+    suggererAvecOllama();
+});
 
 
 function sauvegarde(){
@@ -66,43 +70,58 @@ function recuperer(){
 }
 
 
-const formulaire = document.getElementById("ideeForm")
-formulaire.addEventListener('submit', function(e){
-    e.preventDefault()
-    titre= document.getElementById("titre")
-    console.log(titre.value)
-    categorie=document.getElementById("categorie")
-    console.log(categorie.value)
-    description=document.getElementById("description")
-    console.log(description.value)
+
+
+
+function creerFormulaire() {
+    const formulaire = document.getElementById("ideeForm");
     
-    const idee={
-    id: Date.now(),
-    titre: titre.value,
-    categorie: categorie.value,
-    description: description.value
-}
-    if (indexModification ===-1){
-        tableauIdees.push(idee)
-    }else{
-        const position = tableauIdees.findIndex(i => i.id === indexModification)
-        tableauIdees[position]={ 
-            id: indexModification,
+    formulaire.addEventListener('submit', function(e){
+        e.preventDefault();
+        
+        const titre = document.getElementById("titre");
+        const categorie = document.getElementById("categorie");
+        const description = document.getElementById("description");
+        
+        console.log(titre.value);
+        console.log(categorie.value);
+        console.log(description.value);
+        
+        const idee = {
+            id: Date.now(),
             titre: titre.value,
             categorie: categorie.value,
-            description: description.value}
-        indexModification = -1;
+            description: description.value
+        };
+        
+        if (indexModification === -1) {
+            tableauIdees.push(idee);
+        } else {
+            const position = tableauIdees.findIndex(i => i.id === indexModification);
+            tableauIdees[position] = { 
+                id: indexModification,
+                titre: titre.value,
+                categorie: categorie.value,
+                description: description.value
+            };
+            indexModification = -1;
+        }
+        
+        sauvegarde();
+        afficherIdees();
+        
+        console.log(idee);
+        console.log(tableauIdees);
+        
+        titre.value = "";
+        categorie.value = "";
+        description.value = "";
+    });
+}
 
-    }sauvegarde()
-    
-    afficherIdees()
-    console.log(idee)
-    console.log(tableauIdees)
+// Appeler la fonction pour creer le formulaire
+creerFormulaire();
 
-    titre.value = ""
-    categorie.value=""
-    description.value=""
-})
 
 
 function afficherIdees(){
@@ -112,11 +131,11 @@ function afficherIdees(){
         maCarte.className = "p-4 rounded-lg shadow-md mb-4"
         
         maCarte.innerHTML=`
-        <p>${[tableauIdees[i].titre]}</p>
-        <p class="text-sm text-gray-600 mb-2">${[tableauIdees[i].categorie]}</p>
-        <p class="text-gray-700 mb-4">${[tableauIdees[i].description]}</p>
-        <button type="submit" class="bg-teal-700 hover:bg-teal-800 text-white px-3 py-1 rounded" onclick="modifierIdee(${[tableauIdees[i].id]})">Modifier</button>
-        <button type="button" class="bg-red-900 hover:bg-red-950 text-white px-3 py-1 rounded" onclick="supprimerIdee(${[tableauIdees[i].id]})">Supprimer</button>`
+        <p>${tableauIdees[i].titre}</p>
+        <p class="text-sm text-gray-600 mb-2">${tableauIdees[i].categorie}</p>
+        <p class="text-gray-700 mb-4">${tableauIdees[i].description}</p>
+        <button type="submit" class="bg-teal-700 hover:bg-teal-800 text-white px-3 py-1 rounded" onclick="modifierIdee(${tableauIdees[i].id})">Modifier</button>
+        <button type="button" class="bg-red-900 hover:bg-red-950 text-white px-3 py-1 rounded" onclick="supprimerIdee(${tableauIdees[i].id})">Supprimer</button>`
         if(tableauIdees[i].categorie==="pedagogie"){
             maCarte.classList.add("bg-blue-100")
         }else if(tableauIdees[i].categorie==="evenement"){
@@ -142,21 +161,17 @@ function supprimerIdee(idIdeeAsupprimer){
 
 function modifierIdee(idAmodifier){
     let ideeAtrouver = tableauIdees.find(idee =>idee.id===idAmodifier)
-    document.getElementById("titre").value=ideeAtrouver.titre,
-    document.getElementById("categorie").value=ideeAtrouver.categorie,
-    document.getElementById("description").value=ideeAtrouver.description
+    document.getElementById("titre").value=ideeAtrouver.titre;
+    document.getElementById("categorie").value=ideeAtrouver.categorie;
+    document.getElementById("description").value=ideeAtrouver.description;
     indexModification=idAmodifier
 }
 
 
+window.modifierIdee = modifierIdee
+window.supprimerIdee = supprimerIdee
 
 
-
-//  Quand on tape dans le titre, Ollama suggère 
-const inputTitre = document.getElementById('titre');
-inputTitre.addEventListener('input', function() {
-    suggererAvecOllama();
-});
 
 
 recuperer()
