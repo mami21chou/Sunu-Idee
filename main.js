@@ -5,6 +5,54 @@ let indexModification=-1
 
 
 
+
+
+
+
+
+// Fonction pour suggérer avec Ollama
+async function suggererAvecOllama() {
+    const titre = document.getElementById('titre').value;
+    if (titre.length < 3) return;
+    
+    try {
+        const response = await fetch('http://localhost:11434/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'mistral',
+                prompt: `Choisis une catégorie pour: "${titre}". Réponds par: pedagogie, evenement, vie-campus, ou autre`,
+                stream: false
+            })
+        });
+        
+        const data = await response.json();
+        let categorie = data.response.trim().toLowerCase();
+        
+        // Nettoie la réponse
+        if (categorie.includes('pedagogie')) categorie = 'pedagogie';
+        else if (categorie.includes('evenement')) categorie = 'evenement';
+        else if (categorie.includes('vie-campus')) categorie = 'vie-campus';
+        else categorie = 'autre';
+        
+        // Applique la suggestion
+        document.getElementById('categorie').value = categorie;
+        
+    } catch (error) {
+        console.log('Ollama indisponible');
+    }
+}
+
+// // Règles locales de secours (si Ollama ne marche pas)
+// function suggererCategorieLocale(titre) {
+//     const t = titre.toLowerCase();
+//     if (t.includes('cours') || t.includes('étude')) return 'pedagogie';
+//     if (t.includes('fête') || t.includes('soirée')) return 'evenement';
+//     if (t.includes('campus') || t.includes('bâtiment')) return 'vie-campus';
+//     return 'autre';
+// }
+
+
 function sauvegarde(){
     localStorage.setItem(stockIdees, JSON.stringify(tableauIdees))
 }
@@ -84,6 +132,8 @@ function afficherIdees(){
 }
 
 
+
+
 function supprimerIdee(idIdeeAsupprimer){
     tableauIdees= tableauIdees.filter(idee => idee.id !==idIdeeAsupprimer)
     sauvegarde()
@@ -97,6 +147,16 @@ function modifierIdee(idAmodifier){
     document.getElementById("description").value=ideeAtrouver.description
     indexModification=idAmodifier
 }
+
+
+
+
+
+//  Quand on tape dans le titre, Ollama suggère 
+const inputTitre = document.getElementById('titre');
+inputTitre.addEventListener('input', function() {
+    suggererAvecOllama();
+});
 
 
 recuperer()
